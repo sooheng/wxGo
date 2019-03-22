@@ -1,22 +1,22 @@
-import wx, law, dbs, pdb
+import wx, law, dbs, time, pdb
 
 
 class DataBoard(law.Board):
 
     
     def __init__(self):
-
-        self.initData()
-        
-    def initData(self):
         
         super().__init__()
         self.color = 1
         self.hands = 1
         
-        self.db = dbs.DbData()
         self.nodes = []
-        self.id = None
+
+        
+    @property    
+    def strnodes(self):
+        '''字符化nodes,用于显示'''
+        return [str(node) for node in self.nodes]
         
         
     def place(self, x, y, color=None):
@@ -29,16 +29,7 @@ class DataBoard(law.Board):
         self.hands += 1
         
         self.nodes.append((x,y,color))
-        
-        
-    def save(self, name):
-        
-        return self.db.insert(self.nodes, name)
-        
-        
-    def getCacheNodes(self):
-        
-        return self.db.getRecord(self.id)
+
 
 
 class GoBoard(wx.Window, DataBoard):
@@ -53,6 +44,8 @@ class GoBoard(wx.Window, DataBoard):
         DataBoard.__init__(self)
         
         self.brush = {1 : wx.Brush("Black"), -1 : wx.Brush("White")}
+        self.textcolor = {1 : wx.Colour(0, 0, 0), -1 : wx.Colour(255, 255, 255)}
+        self.hasNumber = True
         self.image = image       
         self.calc()
         
@@ -60,6 +53,18 @@ class GoBoard(wx.Window, DataBoard):
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
+
+        
+    def clear(self):
+        
+        DataBoard.__init__(self)
+        self.Refresh(False)
+        
+    def toggleNumber(self):
+        
+        self.hasNumber = not self.hasNumber
+        self.Refresh(False)
+        
         
     def calc(self):
         
@@ -67,6 +72,13 @@ class GoBoard(wx.Window, DataBoard):
         s = min(w, h)
         self.gap = s // 20
         self.halfgap = self.gap // 2
+        self.xgap = self.gap // 3
+        self.ygap = self.gap // 3
+        
+        font = self.GetFont()
+        font.SetPointSize(self.gap // 3)
+        self.SetFont(font)
+        
         self.backPhoto = self.image.Scale(s, s).ConvertToBitmap() 
         dc = wx.BufferedDC(None, self.backPhoto)
         self.DrawLines(dc)
@@ -101,8 +113,14 @@ class GoBoard(wx.Window, DataBoard):
         
     def DrawPiece(self, dc, x, y, piece):
         
+        x, y = self.L2P(x,y)
+        
         dc.SetBrush(self.brush[piece.color])
-        dc.DrawCircle(*self.L2P(x,y), self.halfgap)
+        dc.DrawCircle(x, y, self.halfgap)
+        
+        if self.hasNumber:
+            dc.SetTextForeground(self.textcolor[-piece.color])
+            dc.DrawText(str(piece.hand), x-self.xgap, y-self.ygap)
         
         
     def OnPaint(self, event):
@@ -113,6 +131,7 @@ class GoBoard(wx.Window, DataBoard):
         
         
     def L2P(self, x, y):
+    
         calcul = lambda i : i * self.gap + self.gap
         return (calcul(x), calcul(y))
         
@@ -128,7 +147,22 @@ class GoBoard(wx.Window, DataBoard):
             return None
         return (x, y)
         
+    
+    def saveImage(self):
+    
+        name = time.strftime('%Y%m%d%H%M%S',time.localtime()) + ".jpg"
+        with open(name, 'w'):
+            pass
+        typ = wx.BITMAP_TYPE_JPEG
+        return self.buffer.SaveFile(name, typ)
+    
+    
+    def placeByNode(self, node):
         
+        self.place(*node)
+        self.Refresh(False)
+    
+    
     def OnLeftDown(self, event):
         
         xy = self.P2L(*event.GetPosition())
@@ -137,7 +171,9 @@ class GoBoard(wx.Window, DataBoard):
         if self.canPlace(*xy):
             self.place(*xy)
             self.Refresh(False)
-    
+        wx.PostEvent(self.GetParent(), event)
+
+        
     def OnErase(self, event):
         
         dc = event.GetDC()
