@@ -17,15 +17,36 @@ class Player():
     def __init__(self,):
         
         self.db = DbData()
+        self.mode = "mine"
+        self.clicked = True
         self.id = None
         self.cache = None
         
+    def __str__(self):
+        
+        return str(self.cache)
     
+    
+    def setTableName(self, name):
+        
+        self.db.table = name
+        
+        
     @property
     def titles(self):
         
         return [str(title) for title in self.db.outTitles()]
+    
+
+    @property
+    def lastOne(self):
         
+        if self.cache:
+            node = self.cache[0]
+            x, y, c = node
+            return (x, y)
+            
+            
     def setcache(self, id):
         
         self.cache = self.db.getRecord(id)
@@ -68,11 +89,14 @@ class MyFrame(wx.Frame):
         
         # 创建菜单
         self.createMenuBar()        
-        #self.toolbar = aui.auibar.AuiToolBar(self)
+        self.toolbar = wx.ToolBar(self, -1)
+        self.toolbar.AddTool(101, "yil", wx.Bitmap("ps.png"))
+        self.toolbar.Realize()
         
         # 创建面板
         self.history = wx.ListBox(self, -1, choices=self.player.titles, size = wx.Size(200,150))
-        self.history.SetSelection(0)
+        if self.player.titles:
+            self.history.SetSelection(0)
                                    
         self.board = GoBoard(wx.Image("back.png"), parent=self, style=wx.FULL_REPAINT_ON_RESIZE)
         
@@ -83,6 +107,7 @@ class MyFrame(wx.Frame):
         self._mgr.AddPane(self.history, aui.AuiPaneInfo().Left().Caption("历史记录"))
         self._mgr.AddPane(self.stones, aui.AuiPaneInfo().Right().Caption("下棋位置"))
         self._mgr.AddPane(self.board, aui.AuiPaneInfo().CenterPane())
+        self._mgr.AddPane(self.toolbar, aui.AuiPaneInfo().Top())
 
         # tell the manager to "commit" all the changes just made
         self._mgr.Update()
@@ -119,22 +144,44 @@ class MyFrame(wx.Frame):
         self._mgr.UnInit()
         event.Skip()
 
+    
+    def OnMine(self, event):
+        
+        self._change_mode("mine")        
+        
+        
+    def OnExpert(self, event):
+        
+        self._change_mode("expert")        
 
+
+    def OnTaolu(self, event):
+        
+        self._change_mode("taolu")
+        
+        
+    def _change_mode(self, mode):
+        
+        self.player.setTableName(mode)
+        self.history.Set(self.player.titles)
+        self.player.mode = mode
+        
+        
     def createMenuBar(self):
                 
         menuMode = wx.Menu()
-        startQi = menuMode.AppendRadioItem(-1, "我的棋谱")
-        newQi = menuMode.AppendRadioItem(-1, "专家棋谱")
-        openQi = menuMode.AppendRadioItem(-1, "定式")
+        mine = menuMode.AppendRadioItem(-1, "我的棋谱")
+        expert = menuMode.AppendRadioItem(-1, "专家棋谱")
+        taolu = menuMode.AppendRadioItem(-1, "定式")
         
-        #self.Bind(wx.EVT_MENU, self.OnStart, startQi)
-        #self.Bind(wx.EVT_MENU, self.OnNew, newQi)
-        #self.Bind(wx.EVT_MENU, self.OnOpen, openQi)
+        self.Bind(wx.EVT_MENU, self.OnMine, mine)
+        self.Bind(wx.EVT_MENU, self.OnExpert, expert)
+        self.Bind(wx.EVT_MENU, self.OnTaolu, taolu)
         
         menuEdit = wx.Menu()
         newb = menuEdit.Append(-1, "新建")
         save = menuEdit.Append(-1, "保存")
-        saveAs = menuEdit.Append(-1, "另保存")
+        saveAs = menuEdit.Append(-1, "另保为")
         clea = menuEdit.Append(-1, "清理")
         daka = menuEdit.Append(-1, "打开")
         dele = menuEdit.Append(-1, "删除")
@@ -149,9 +196,9 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnImag, imag)
         
         menuClok = wx.Menu()
-        quk = menuClok.Append(-1, "快速")
-        man = menuClok.Append(-1, "手动")
+        man = menuClok.Append(-1, "手动")                
         aut = menuClok.Append(-1, "自动")
+        quk = menuClok.Append(-1, "快速")
         
         self.Bind(wx.EVT_MENU, self.OnQuk, quk)
         self.Bind(wx.EVT_MENU, self.OnMan, man)
@@ -160,17 +207,25 @@ class MyFrame(wx.Frame):
         menuSets = wx.Menu()
         num = menuSets.Append(-1, "数字的显示")
         clk = menuSets.Append(-1, "定时的时间")
+        tip = menuSets.Append(-1, "提示")
         
         self.Bind(wx.EVT_MENU, self.OnNum, num)
         self.Bind(wx.EVT_MENU, self.OnClk, clk)
+        self.Bind(wx.EVT_MENU, self.OnTip, tip)
         
         menuBar = wx.MenuBar()        
         menuBar.Append(menuMode, "模式")
         menuBar.Append(menuEdit, "编辑")
         menuBar.Append(menuClok, "定时")
-        menuBar.Append(menuSets, "设置")
+        menuBar.Append(menuSets, "其他")
         self.SetMenuBar(menuBar)
-    
+
+
+    def OnTip(self, event):
+        
+        wx.MessageBox(str(self.player), caption="Message", style=wx.OK)
+        
+        
     def OnClk(self, event):
         
         clktime = wx.GetNumberFromUser(message='ms为单位：', prompt='', caption="定时器的间隔时间", value=self.clktime, min=0, max=60000)        
@@ -192,7 +247,7 @@ class MyFrame(wx.Frame):
     
     def OnMan(self, event):
         
-        self.timer.Stop()
+        self.timer.Stop()        
         
         
     def OnAut(self, event):
@@ -203,19 +258,20 @@ class MyFrame(wx.Frame):
     def OnNewb(self, event):
         
         self.clea()
-        self.player.id = None
+        self.player.id = None        
         
         
     def OnSave(self, event):
         
         self.player.save(self.board.nodes)
-        self.history.Set(self.player.titles)
+        self.history.Set(self.player.titles)        
+        
     
     def OnSaveAs(self, event):
         
         self.player.id = None
         self.player.save(self.board.nodes)
-        self.history.Set(self.player.titles)
+        self.history.Set(self.player.titles)        
         
         
     def OnClea(self, event):
@@ -226,7 +282,7 @@ class MyFrame(wx.Frame):
     def OnDaka(self, event):
     
         self.clea()
-        self.player.setcache(self.selectedId)
+        self.player.setcache(self.selectedId)        
         
                 
     def OnDele(self, event):
@@ -251,7 +307,7 @@ class MyFrame(wx.Frame):
         num = self.history.GetSelection()
         id = self.history.GetString(num).strip('()').split(',')[0]
         return id
-        
+                          
     
     def placeOne(self):
         

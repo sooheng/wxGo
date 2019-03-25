@@ -46,6 +46,7 @@ class GoBoard(wx.Window, DataBoard):
         self.brush = {1 : wx.Brush("Black"), -1 : wx.Brush("White")}
         self.textcolor = {1 : wx.Colour(0, 0, 0), -1 : wx.Colour(255, 255, 255)}
         self.hasNumber = True
+        self.player = self.GetParent().player
         self.image = image       
         self.calc()
         
@@ -166,13 +167,32 @@ class GoBoard(wx.Window, DataBoard):
     def OnLeftDown(self, event):
         
         xy = self.P2L(*event.GetPosition())
+        if self.player.mode == "expert":
+            self.GetParent().placeOne()
+        elif self.player.mode == "mine":
+            self._xia(xy)
+        elif self.player.mode == "taolu":
+            self._dui(xy)
+        wx.PostEvent(self.GetParent(), event)
+
+    
+    def _dui(self, xy):
+        
+        if xy == self.player.lastOne:
+            self.GetParent().placeOne()
+            self.GetParent().placeOne()
+        else:
+            pass
+    
+    
+    def _xia(self, xy):
+                
         if xy is None:
             return
         if self.canPlace(*xy):
             self.place(*xy)
             self.Refresh(False)
-        wx.PostEvent(self.GetParent(), event)
-
+        
         
     def OnErase(self, event):
         
