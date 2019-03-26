@@ -11,27 +11,41 @@ from newBoard import GoBoard
 from dbs import DbData
 
 
+tb_next = wx.NewId()
+me_save = wx.NewId()
+me_saveAs = wx.NewId()
+me_daan = wx.NewId()
+        
 class Player():
-    
+    '''数据库的接口'''
     
     def __init__(self,):
         
         self.db = DbData()
-        self.mode = "mine"
-        self.clicked = True
         self.id = None
         self.cache = None
+        
+        self.mode = "mine"
+        self.clicked = True
+        
         
     def __str__(self):
         
         return str(self.cache)
     
     
-    def setTableName(self, name):
+    @property
+    def tableName(self):
+        
+        return self.db.table
+        
+        
+    @tableName.setter    
+    def tableName(self, name):
         
         self.db.table = name
         
-        
+    
     @property
     def titles(self):
         
@@ -62,7 +76,17 @@ class Player():
         else:
             self.db.update(nodes, self.id)
     
-
+    def saveDaan(self, num):
+        
+        self.save([])
+        self.db.setDaan(num, self.id)
+        
+    @property
+    def daan(self):
+        
+        return self.db.getDaan(self.id)
+        
+        
     def deleId(self, id):
         
         self.db.delete(id)
@@ -88,9 +112,12 @@ class MyFrame(wx.Frame):
         self.timer = wx.Timer(self)
         
         # 创建菜单
-        self.createMenuBar()        
+        self.createMenuBar()
+        
+        #创建工具栏
         self.toolbar = wx.ToolBar(self, -1)
-        self.toolbar.AddTool(101, "yil", wx.Bitmap("ps.png"))
+        self.toolbar.AddTool(tb_next, "next", wx.Bitmap("ps.png"))
+        self.toolbar.Bind(wx.EVT_TOOL, self.OnNext, id=tb_next)
         self.toolbar.Realize()
         
         # 创建面板
@@ -133,9 +160,23 @@ class MyFrame(wx.Frame):
         
         self.placeOne()
         
+    
+    def OnNext(self, event):
+        
+        self.placeOne()
+        
         
     def OnLeftDown(self, event):
     
+        if self.player.mode == "mine" or self.player.clicked:
+            self.board.plac()
+        elif self.player.mode == "taolu":
+            if self.board.xy == self.player.lastOne:                
+                self.placeOne()
+        elif self.player.mode == "sihuo":
+            if self.board.xy == self.player.lastOne:
+                self.placeOne()
+                self.placeOne()
         self.stones.Set(self.board.strnodes)
         
     
@@ -147,24 +188,42 @@ class MyFrame(wx.Frame):
     
     def OnMine(self, event):
         
-        self._change_mode("mine")        
+        self._change_mode("mine")
+        menuBar = self.GetMenuBar()
+        menuBar.EnableTop(2, True)
+        menuBar.Enable(me_save, True)
+        menuBar.Enable(me_saveAs, True)
         
         
     def OnExpert(self, event):
         
-        self._change_mode("expert")        
+        self._change_mode("expert")
+        menuBar = self.GetMenuBar()
+        menuBar.EnableTop(2, True)
+        
 
 
     def OnTaolu(self, event):
         
         self._change_mode("taolu")
+        menuBar = self.GetMenuBar()
+        menuBar.EnableTop(2, False)
+        
+        
+    
+    def OnSihuo(self, event):
+        
+        self._change_mode("sihuo")
+        menuBar = self.GetMenuBar()
+        menuBar.EnableTop(2, False)
+        
         
         
     def _change_mode(self, mode):
         
-        self.player.setTableName(mode)
-        self.history.Set(self.player.titles)
+        self.player.tableName = mode
         self.player.mode = mode
+        self.history.Set(self.player.titles)        
         
         
     def createMenuBar(self):
@@ -172,46 +231,50 @@ class MyFrame(wx.Frame):
         menuMode = wx.Menu()
         mine = menuMode.AppendRadioItem(-1, "我的棋谱")
         expert = menuMode.AppendRadioItem(-1, "专家棋谱")
-        taolu = menuMode.AppendRadioItem(-1, "定式")
+        taolu = menuMode.AppendRadioItem(-1, "定式题")
+        sihuo = menuMode.AppendRadioItem(-1, "死活题")
         
         self.Bind(wx.EVT_MENU, self.OnMine, mine)
         self.Bind(wx.EVT_MENU, self.OnExpert, expert)
         self.Bind(wx.EVT_MENU, self.OnTaolu, taolu)
+        self.Bind(wx.EVT_MENU, self.OnSihuo, sihuo)
         
         menuEdit = wx.Menu()
         newb = menuEdit.Append(-1, "新建")
-        save = menuEdit.Append(-1, "保存")
-        saveAs = menuEdit.Append(-1, "另保为")
-        clea = menuEdit.Append(-1, "清理")
+        save = menuEdit.Append(me_save, "保存")
+        saveAs = menuEdit.Append(me_saveAs, "另存为")
+        daan = menuEdit.Append(me_daan, "插入答案")
         daka = menuEdit.Append(-1, "打开")
         dele = menuEdit.Append(-1, "删除")
-        imag = menuEdit.Append(-1, "保存图片")
+        clea = menuEdit.Append(-1, "重新")        
         
+        self.Bind(wx.EVT_MENU, self.OnDaan, daan)
         self.Bind(wx.EVT_MENU, self.OnNewb, newb)
         self.Bind(wx.EVT_MENU, self.OnSave, save)
         self.Bind(wx.EVT_MENU, self.OnSaveAs, saveAs)
         self.Bind(wx.EVT_MENU, self.OnDaka, daka)
         self.Bind(wx.EVT_MENU, self.OnDele, dele)
-        self.Bind(wx.EVT_MENU, self.OnClea, clea)
-        self.Bind(wx.EVT_MENU, self.OnImag, imag)
+        self.Bind(wx.EVT_MENU, self.OnClea, clea)        
         
         menuClok = wx.Menu()
         man = menuClok.Append(-1, "手动")                
         aut = menuClok.Append(-1, "自动")
         quk = menuClok.Append(-1, "快速")
+        clk = menuClok.Append(-1, "定时的时间")
         
         self.Bind(wx.EVT_MENU, self.OnQuk, quk)
         self.Bind(wx.EVT_MENU, self.OnMan, man)
         self.Bind(wx.EVT_MENU, self.OnAut, aut)
+        self.Bind(wx.EVT_MENU, self.OnClk, clk)
         
         menuSets = wx.Menu()
-        num = menuSets.Append(-1, "数字的显示")
-        clk = menuSets.Append(-1, "定时的时间")
+        num = menuSets.Append(-1, "数字的显示")        
         tip = menuSets.Append(-1, "提示")
+        imag = menuSets.Append(-1, "保存图片")        
         
-        self.Bind(wx.EVT_MENU, self.OnNum, num)
-        self.Bind(wx.EVT_MENU, self.OnClk, clk)
+        self.Bind(wx.EVT_MENU, self.OnNum, num)        
         self.Bind(wx.EVT_MENU, self.OnTip, tip)
+        self.Bind(wx.EVT_MENU, self.OnImag, imag)
         
         menuBar = wx.MenuBar()        
         menuBar.Append(menuMode, "模式")
@@ -258,7 +321,8 @@ class MyFrame(wx.Frame):
     def OnNewb(self, event):
         
         self.clea()
-        self.player.id = None        
+        self.player.id = None
+        self.player.clicked = True
         
         
     def OnSave(self, event):
@@ -273,6 +337,10 @@ class MyFrame(wx.Frame):
         self.player.save(self.board.nodes)
         self.history.Set(self.player.titles)        
         
+    def OnDaan(self, event):
+        
+        self.player.saveDaan(len(self.board.nodes))
+        
         
     def OnClea(self, event):
         
@@ -282,7 +350,10 @@ class MyFrame(wx.Frame):
     def OnDaka(self, event):
     
         self.clea()
-        self.player.setcache(self.selectedId)        
+        self.player.setcache(self.selectedId)
+        if self.player.mode in ("taolu, sihuo"):
+            self.player.clicked = False
+            self.placeSome(self.player.daan)
         
                 
     def OnDele(self, event):
@@ -316,7 +387,15 @@ class MyFrame(wx.Frame):
             self.board.placeByNode(node)
             self.stones.Set(self.board.strnodes)
             
-                
+    
+    def placeSome(self, num):
+        
+        for i in range(num):
+            node = self.player.cache.pop(0)
+            self.board.placeByNode(node)
+        self.stones.Set(self.board.strnodes)
+        
+        
     def placeAll(self):
                 
         while self.player.cache:

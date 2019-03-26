@@ -9,7 +9,7 @@ class DbData():
         
         self.conn = sqlite3.connect("qi.db")
         self.cur = self.conn.cursor()
-        self.tables = ["mine", "expert", "taolu"]
+        self.tables = ["mine", "expert", "taolu", "sihuo"]
         self.initTable()
         self.table = "mine"
         
@@ -22,7 +22,8 @@ class DbData():
                         name varchar(32),
                         createdTime timestamp DEFAULT (datetime('now','localtime')),
                         lastTime timestamp,
-                        record varchar(4000))'''.format(table)
+                        record varchar(4000),
+                        ans integer DEFAULT NULL)'''.format(table)
             self.cur.execute(createTableStmt)
         self.conn.commit()
     
@@ -67,6 +68,21 @@ class DbData():
         self.conn.commit()
     
     
+    def setDaan(self, num, id):
+        
+        updateStmt = '''update {0} set ans = ? where id = ?;'''.format(self.table)        
+        self.cur.execute(updateStmt, (num, id))
+        self.conn.commit()
+        
+    
+    def getDaan(self, id):
+        
+        Stmt = '''select ans from {0} where id = ?'''.format(self.table)
+        self.cur.execute(Stmt, (id,))
+        ans = self.cur.fetchone()[0]
+        return int(ans)
+        
+        
     def outTitles(self):
         selectStmt = '''select id, name, lastTime from {0}'''.format(self.table)
         self.cur.execute(selectStmt)
