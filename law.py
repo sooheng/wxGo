@@ -110,6 +110,7 @@ class Board():
         self.checkBlocks(color)
         self.removeDeathBlocks()
 
+        
     def checkBlock(self, block):
         '''检查一块有没有气'''
         for piece in block:

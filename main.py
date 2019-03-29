@@ -7,90 +7,22 @@ Created on Sat Mar 16 11:58:17 2019
 
 import wx, pdb
 import wx.lib.agw.aui as aui
-from newBoard import GoBoard
-from dbs import DbData
+from board import GoBoard, DataBoard
+from mode import Mode
 
 
 tb_next = wx.NewId()
 me_save = wx.NewId()
 me_saveAs = wx.NewId()
 me_daan = wx.NewId()
-        
-class Player():
-    '''数据库的接口'''
-    
-    def __init__(self,):
-        
-        self.db = DbData()
-        self.id = None
-        self.cache = None
-        
-        self.mode = "mine"
-        self.clicked = True
-        
-        
-    def __str__(self):
-        
-        return str(self.cache)
-    
-    
-    @property
-    def tableName(self):
-        
-        return self.db.table
-        
-        
-    @tableName.setter    
-    def tableName(self, name):
-        
-        self.db.table = name
-        
-    
-    @property
-    def titles(self):
-        
-        return [str(title) for title in self.db.outTitles()]
-    
 
-    @property
-    def lastOne(self):
-        
-        if self.cache:
-            node = self.cache[0]
-            x, y, c = node
-            return (x, y)
-            
-            
-    def setcache(self, id):
-        
-        self.cache = self.db.getRecord(id)
-        self.id = id
-        
-        
-    def save(self, nodes):
-    
-        if self.id is None:
-            name = wx.GetTextFromUser(parent=None, message="请输入围棋记录名", caption="围棋记录名", default_value="")
-            if name:
-                self.id = self.db.insert(nodes, name)
-        else:
-            self.db.update(nodes, self.id)
-    
-    def saveDaan(self, num):
-        
-        self.save([])
-        self.db.setDaan(num, self.id)
-        
-    @property
-    def daan(self):
-        
-        return self.db.getDaan(self.id)
-        
-        
-    def deleId(self, id):
-        
-        self.db.delete(id)
-        
+dataBoard = DataBoard()
+
+mine = Mode('mine')
+expert = Mode('expert')
+sihuo = Mode('sihuo')
+dingsi = Mode('dingsi')
+
 
 class MyFrame(wx.Frame):
 
@@ -104,8 +36,8 @@ class MyFrame(wx.Frame):
         # notify AUI which frame to use
         self._mgr.SetManagedWindow(self)
         
-        # 创建玩家
-        self.player = Player()
+        # 创建设置
+        self.mode = mine
         
         # 创建定时器
         self.clktime = 2000
@@ -121,13 +53,11 @@ class MyFrame(wx.Frame):
         self.toolbar.Realize()
         
         # 创建面板
-        self.history = wx.ListBox(self, -1, choices=self.player.titles, size = wx.Size(400,150))
-        if self.player.titles:
-            self.history.SetSelection(0)
+        self.history = wx.ListBox(self, -1, choices=self.mode.titles, size = wx.Size(400,150))        
                                    
-        self.board = GoBoard(wx.Image("back.png"), parent=self, style=wx.FULL_REPAINT_ON_RESIZE)
+        self.board = GoBoard(wx.Image("back.png"), dataBoard, parent=self, style=wx.FULL_REPAINT_ON_RESIZE)
         
-        self.stones = wx.ListBox(self, -1, choices=self.board.strnodes, size=wx.Size(100,150))
+        self.stones = wx.ListBox(self, -1, choices=dataBoard.strnodes, size=wx.Size(100,150))
         
         # add the panes to the manager
         #self._mgr.AddPane(self.toolbar, aui.AuiPaneInfo().Top())
@@ -148,11 +78,6 @@ class MyFrame(wx.Frame):
     
     def OnHistory(self, event):
         
-        #string = event.GetString().strip('()')
-        #id = int(string.split(',')[0])
-        #self.player.setcache(id)
-        #print(self.player.cache)
-        #pdb.set_trace()
         pass
         
     
@@ -168,16 +93,9 @@ class MyFrame(wx.Frame):
         
     def OnLeftDown(self, event):
     
-        if self.player.mode == "mine" or self.player.clicked:
-            self.board.plac()
-        elif self.player.mode == "taolu":
-            if self.board.xy == self.player.lastOne:                
-                self.placeOne()
-        elif self.player.mode == "sihuo":
-            if self.board.xy == self.player.lastOne:
-                self.placeOne()
-                self.placeOne()
-        self.stones.Set(self.board.strnodes)
+        dataBoard.place(*self.board.xy)
+        self.board.Refresh(False)
+        self.stones.Set(dataBoard.strnodes)
         
     
     def OnClose(self, event):
@@ -188,42 +106,30 @@ class MyFrame(wx.Frame):
     
     def OnMine(self, event):
         
-        self._change_mode("mine")
-        menuBar = self.GetMenuBar()
-        menuBar.EnableTop(2, True)
-        menuBar.Enable(me_save, True)
-        menuBar.Enable(me_saveAs, True)
+        self._change_mode(mine)
         
         
     def OnExpert(self, event):
         
-        self._change_mode("expert")
-        menuBar = self.GetMenuBar()
-        menuBar.EnableTop(2, True)
+        self._change_mode(expert)      
         
 
-
-    def OnTaolu(self, event):
+    def OnDingsi(self, event):
         
-        self._change_mode("taolu")
-        menuBar = self.GetMenuBar()
-        menuBar.EnableTop(2, False)
-        
-        
+        self._change_mode(dingsi, False)        
+                
     
     def OnSihuo(self, event):
         
-        self._change_mode("sihuo")
+        self._change_mode(sihuo, False)
+                        
+        
+    def _change_mode(self, mode, clock=True):
+        
+        self.mode = mode
         menuBar = self.GetMenuBar()
-        menuBar.EnableTop(2, False)
-        
-        
-        
-    def _change_mode(self, mode):
-        
-        self.player.tableName = mode
-        self.player.mode = mode
-        self.history.Set(self.player.titles)        
+        menuBar.EnableTop(2, clock)
+        self.history.Set(self.mode.titles)        
         
         
     def createMenuBar(self):
@@ -231,12 +137,12 @@ class MyFrame(wx.Frame):
         menuMode = wx.Menu()
         mine = menuMode.AppendRadioItem(-1, "我的棋谱")
         expert = menuMode.AppendRadioItem(-1, "专家棋谱")
-        taolu = menuMode.AppendRadioItem(-1, "定式题")
+        dingsi = menuMode.AppendRadioItem(-1, "定式题")
         sihuo = menuMode.AppendRadioItem(-1, "死活题")
         
         self.Bind(wx.EVT_MENU, self.OnMine, mine)
         self.Bind(wx.EVT_MENU, self.OnExpert, expert)
-        self.Bind(wx.EVT_MENU, self.OnTaolu, taolu)
+        self.Bind(wx.EVT_MENU, self.OnDingsi, dingsi)
         self.Bind(wx.EVT_MENU, self.OnSihuo, sihuo)
         
         menuEdit = wx.Menu()
@@ -286,7 +192,7 @@ class MyFrame(wx.Frame):
 
     def OnTip(self, event):
         
-        wx.MessageBox(str(self.player), caption="Message", style=wx.OK)
+        wx.MessageBox(str(self.mode.nodes), caption="围棋记录", style=wx.OK)
         
         
     def OnClk(self, event):
@@ -321,25 +227,26 @@ class MyFrame(wx.Frame):
     def OnNewb(self, event):
         
         self.clea()
-        self.player.id = None
-        self.player.clicked = True
+        self.mode.id = None
+        self.mode.clicked = True
         
         
     def OnSave(self, event):
         
-        self.player.save(self.board.nodes)
-        self.history.Set(self.player.titles)        
+        self.mode.save(dataBoard.nodes)
+        self.history.Set(self.mode.titles)        
         
     
     def OnSaveAs(self, event):
         
-        self.player.id = None
-        self.player.save(self.board.nodes)
-        self.history.Set(self.player.titles)        
+        self.mode.id = None
+        self.mode.save(dataBoard.nodes)
+        self.history.Set(self.mode.titles)        
+        
         
     def OnDaan(self, event):
         
-        self.player.saveDaan(len(self.board.nodes))
+        self.mode.saveDaan(len(dataBoard.nodes))
         
         
     def OnClea(self, event):
@@ -350,22 +257,21 @@ class MyFrame(wx.Frame):
     def OnDaka(self, event):
     
         self.clea()
-        self.player.setcache(self.selectedId)
-        if self.player.mode in ("taolu, sihuo"):
-            self.player.clicked = False
-            self.placeSome(self.player.daan)
+        self.mode.open(self.selectedId)        
         
                 
     def OnDele(self, event):
     
-        self.player.deleId(self.selectedId)
-        self.history.Set(self.player.titles)
+        self.mode.delete(self.selectedId)
+        self.history.Set(self.mode.titles)
     
     
     def clea(self):
         
-        self.board.clear()
-        self.stones.Set(self.board.strnodes)
+        dataBoard.clear()
+        self.board.Refresh(False)
+        self.stones.Set(dataBoard.strnodes)
+        
         
     def OnImag(self, event):
         
@@ -382,26 +288,29 @@ class MyFrame(wx.Frame):
     
     def placeOne(self):
         
-        if self.player.cache:
-            node = self.player.cache.pop(0)
-            self.board.placeByNode(node)
-            self.stones.Set(self.board.strnodes)
+        if self.mode.nodes:
+            node = self.mode.nodes.pop(0)
+            dataBoard.place(*node)
+            self.board.Refresh(False)
+            self.stones.Set(dataBoard.strnodes)
             
     
     def placeSome(self, num):
         
         for i in range(num):
-            node = self.player.cache.pop(0)
-            self.board.placeByNode(node)
-        self.stones.Set(self.board.strnodes)
+            node = self.mode.nodes.pop(0)
+            dataBoard.place(*node)
+        self.board.Refresh(False)
+        self.stones.Set(dataBoard.strnodes)
         
         
     def placeAll(self):
                 
-        while self.player.cache:
-            node = self.player.cache.pop(0)
-            self.board.placeByNode(node)
-        self.stones.Set(self.board.strnodes)
+        while self.mode.nodes:
+            node = self.mode.nodes.pop(0)
+            dataBoard.place(*node)
+        self.board.Refresh(False)
+        self.stones.Set(dataBoard.strnodes)
             
             
 # our normal wxApp-derived class, as usual
