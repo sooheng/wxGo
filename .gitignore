@@ -1,0 +1,5 @@
+__pycache__/
+垃圾箱/
+*.db
+*.jpg
+*.png

@@ -1,14 +1,29 @@
-import sqlite3, datetime
+import sqlite3, datetime, json
 
+
+def adapt_list(alist):
+    return json.dumps(alist)
+    
+    
+def convert_list(slist):
+    return json.loads(slist)
+    
+    
+sqlite3.register_adapter(list, adapt_list)
+
+sqlite3.register_converter('list', convert_list)
+
+    
 
 class Model():
     '''数据库接口类'''
-    __conn = sqlite3.connect("weiqi.db")
-    selectSt = '''select {field} from {table} where id = {id}'''
-    updateSt = '''update {table} set {field} = {vaule} where id = {id}'''
+    __conn = sqlite3.connect("weiqi.db", detect_types=sqlite3.PARSE_DECLTYPES)
+    selectSt = '''select {fields} from {table} where id = ?'''
+    updateSt = '''update {table} set {fields} = ? where id = ?'''
     insertSt = '''insert into {table} (lastTime, nodes, name)values(?, ?, ?)'''
-    deleteSt = '''delete from {table} where id = {id}'''
+    deleteSt = '''delete from {table} where id = ?'''
     selectAllSt = '''select {fields} from {table}'''
+    
     
     def __init__(self, table):
         '''创建游标、表'''
@@ -19,20 +34,20 @@ class Model():
         
     def __createTable(self):
         '''如果表不存在的话，创建表'''
-        createTableStmt = '''create table if not exists {0}(
+        createTableStmt = '''create table if not exists {}(
                         id integer primary key autoincrement,
                         name varchar(32),
                         createdTime timestamp DEFAULT (datetime('now','localtime')),
                         lastTime timestamp,
-                        nodes varchar(4000),
-                        pos integer DEFAULT NULL)'''.format(self.__table)
+                        nodes list,
+                        pos integer DEFAULT NULL)'''.format(self.__table)                                
         self.cur.execute(createTableStmt)
         self.__conn.commit()
         
     
     def insert(self, nodes, name):
         '''新建一行记录'''       
-        st = self.insertSt.format(table=self.__table)
+        st = self.insertSt.format(table=self.__table)		
         dt = (datetime.datetime.now(), nodes, name)
         self.cur.execute(st, dt)
         self.__conn.commit()
@@ -42,39 +57,35 @@ class Model():
     def delete(self, id):
         '''删除一行记录
         id : 记录的主键'''
-        st = self.deleteSt.format(table=self.__table, id=id)
+        st = self.deleteSt.format(table=self.__table) 
+        dt= (id,)
         self.cur.execute(st)
         self.__conn.commit()
         
         
-    def setfiled(self, id, name, vaule):
+    def setfiled(self, id, **kwargs):
         '''给一行记录的字段赋值
-        id : 记录的主键
-        name : 记录的字段
-        vaule : 字段的值'''
-        st = self.updateSt.format(field=name, table=self.__table, vaule=vaule, id=id)
-        self.cur.execute(st)
-        st = self.updateSt.format(field='lastTime', table=self.__table, vaule=datetime.datetime.now(), id=id)
-        self.cur.execute(st)
+        id : 记录的主键'''        
+        fields = ' = ?, '.join(kwargs.keys())                
+        st = self.updateSt.format(table=self.__table, fields=fields)
+        dt = tuple(kwargs.values()) + (id,)
+        self.cur.execute(st, dt)        
         self.__conn.commit()
         
     
-    def getfiled(self, id, name):
+    def getfiled(self, *names, id=None):
         '''获得一行记录的字段的值
         id : 数据库的主键
-        name : 记录的字段'''
-        st = self.selectSt.format(field=name, table=self.__table, id=id)
-        self.cur.execute(st)
-        row = self.cur.fetchone()
-        return row[0]
-        
-    
-    def getall(self, *names):
-        '''获得所有记录的一些字段值
         names : 字段名'''
+        if id is None:
+            st = self.selectAllSt
+            dt = ()
+        else:
+            st = self.selectSt
+            dt = (id,)
         fields = ','.join(names)
-        st = self.selectAllSt.format(fields=fields, table=self.__table)
-        self.cur.execute(st)
+        st = st.format(table=self.__table, fields=fields)
+        self.cur.execute(st, dt)
         rows = self.cur.fetchall()
         return rows
         
@@ -86,12 +97,12 @@ class Model():
 
 def __test__():
     '''测试函数'''
-    import json
+    import json, pdb
     model = Model('test')
-    nodes = json.dumps([(1,2,3),(4,5,6)])
-    print(model.insert(nodes, 'test'))
-    print(model.getall('*'))
-    print(model.getfiled(2, 'nodes'))
+    nodes = [(1,2,3),(4,5,6)]
+    pdb.set_trace()
+    #print(model.insert(nodes, 'test'))
+    #print(model.getfiled('nodes'))
     #print(model.delete(1))
     
     

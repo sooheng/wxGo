@@ -8,7 +8,7 @@ Created on Sat Mar 16 11:58:17 2019
 import wx, pdb
 import wx.lib.agw.aui as aui
 from board import GoBoard, DataBoard
-from mode import Mode
+from mode import Mode, Mode2
 
 
 tb_next = wx.NewId()
@@ -20,13 +20,13 @@ dataBoard = DataBoard()
 
 mine = Mode('mine')
 expert = Mode('expert')
-sihuo = Mode('sihuo')
-dingsi = Mode('dingsi')
+sihuo = Mode2('sihuo')
+dingsi = Mode2('dingsi')
 
 
 class MyFrame(wx.Frame):
 
-    def __init__(self, parent, id=-1, title="AUI Test", pos=wx.DefaultPosition,
+    def __init__(self, parent, id=-1, title="围棋打谱", pos=wx.DefaultPosition,
                  size=(900, 600), style=wx.DEFAULT_FRAME_STYLE):
 
         wx.Frame.__init__(self, parent, id, title, pos, size, style)
@@ -38,6 +38,7 @@ class MyFrame(wx.Frame):
         
         # 创建设置
         self.mode = mine
+        self.clicked = True
         
         # 创建定时器
         self.clktime = 2000
@@ -46,11 +47,11 @@ class MyFrame(wx.Frame):
         # 创建菜单
         self.createMenuBar()
         
+        #创建状态条
+        self.createStatusBar()
+        
         #创建工具栏
-        self.toolbar = wx.ToolBar(self, -1)
-        self.toolbar.AddTool(tb_next, "next", wx.Bitmap("ps.png"))
-        self.toolbar.Bind(wx.EVT_TOOL, self.OnNext, id=tb_next)
-        self.toolbar.Realize()
+        self.createToolBar()      
         
         # 创建面板
         self.history = wx.ListBox(self, -1, choices=self.mode.titles, size = wx.Size(400,150))        
@@ -76,6 +77,23 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
     
     
+    def createToolBar(self):
+        
+        self.toolbar = wx.ToolBar(self, -1)
+        self.toolbar.AddTool(tb_next, "next", wx.Bitmap("ps.png"))
+        self.toolbar.Bind(wx.EVT_TOOL, self.OnNext, id=tb_next)
+        self.toolbar.Realize()
+        
+        
+    def createStatusBar(self):
+        
+        self.statusBar = self.CreateStatusBar()
+        self.statusBar.SetFieldsCount(4)
+        self.statusBar.SetStatusWidths([-1,-1,-3,-3])
+        self.statusBar.SetStatusText("可编辑：", 0)
+        self.statusBar.SetStatusText(str(self.clicked), 1)
+        
+        
     def OnHistory(self, event):
         
         pass
@@ -83,19 +101,39 @@ class MyFrame(wx.Frame):
     
     def OnTimer(self, event):
         
-        self.placeOne()
+        self.putstone()
         
     
     def OnNext(self, event):
         
-        self.placeOne()
+        self.clicked = not self.clicked
+        self.statusBar.SetStatusText(str(self.clicked), 1)
         
         
     def OnLeftDown(self, event):
-    
-        dataBoard.place(*self.board.xy)
-        self.board.Refresh(False)
-        self.stones.Set(dataBoard.strnodes)
+                
+        if self.clicked:
+            #编辑写入
+            dataBoard.place(*self.board.xy)
+            self.board.Refresh(False)
+            self.stones.Set(dataBoard.strnodes)
+            statusText = str(self.board.xy)
+        else:
+            #只可以读取
+            if self.mode in (mine, expert):
+                self.putstone()
+                statusText = str(dataBoard.hands)
+            else:
+                if self.mode.curentxy == self.board.xy:
+                    if self.mode is dingsi:
+                        self.putstone()
+                    else:
+                        self.putstone(2)
+                    statusText = "正确的位置"
+                else:
+                    statusText = "错误的位置"
+        self.statusBar.SetStatusText(statusText, 2)
+        
         
     
     def OnClose(self, event):
@@ -124,11 +162,11 @@ class MyFrame(wx.Frame):
         self._change_mode(sihuo, False)
                         
         
-    def _change_mode(self, mode, clock=True):
+    def _change_mode(self, mode, enableClock=True):
         
         self.mode = mode
         menuBar = self.GetMenuBar()
-        menuBar.EnableTop(2, clock)
+        menuBar.EnableTop(2, enableClock)
         self.history.Set(self.mode.titles)        
         
         
@@ -146,15 +184,15 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnSihuo, sihuo)
         
         menuEdit = wx.Menu()
-        newb = menuEdit.Append(-1, "新建")
+        newb = menuEdit.Append(-1, "新建")        
+        daka = menuEdit.Append(-1, "打开")
+        dele = menuEdit.Append(-1, "删除")
+        clea = menuEdit.Append(-1, "重新")
         save = menuEdit.Append(me_save, "保存")
         saveAs = menuEdit.Append(me_saveAs, "另存为")
         daan = menuEdit.Append(me_daan, "插入答案")
-        daka = menuEdit.Append(-1, "打开")
-        dele = menuEdit.Append(-1, "删除")
-        clea = menuEdit.Append(-1, "重新")        
         
-        self.Bind(wx.EVT_MENU, self.OnDaan, daan)
+        self.Bind(wx.EVT_MENU, self.OnPos, daan)
         self.Bind(wx.EVT_MENU, self.OnNewb, newb)
         self.Bind(wx.EVT_MENU, self.OnSave, save)
         self.Bind(wx.EVT_MENU, self.OnSaveAs, saveAs)
@@ -211,7 +249,7 @@ class MyFrame(wx.Frame):
     
     def OnQuk(self, event):
         
-        self.placeAll()
+        self.putstone(-1)
     
     
     def OnMan(self, event):
@@ -228,8 +266,8 @@ class MyFrame(wx.Frame):
         
         self.clea()
         self.mode.id = None
-        self.mode.clicked = True
-        
+        self.clicked = True
+        self.statusBar.SetStatusText(str(self.clicked), 1)
         
     def OnSave(self, event):
         
@@ -240,13 +278,12 @@ class MyFrame(wx.Frame):
     def OnSaveAs(self, event):
         
         self.mode.id = None
-        self.mode.save(dataBoard.nodes)
-        self.history.Set(self.mode.titles)        
+        self.OnSave(event)              
         
         
-    def OnDaan(self, event):
+    def OnPos(self, event):
         
-        self.mode.saveDaan(len(dataBoard.nodes))
+        self.mode.pos = len(dataBoard.nodes)
         
         
     def OnClea(self, event):
@@ -257,7 +294,11 @@ class MyFrame(wx.Frame):
     def OnDaka(self, event):
     
         self.clea()
-        self.mode.open(self.selectedId)        
+        self.clicked = False
+        self.statusBar.SetStatusText(str(self.clicked), 1)
+        self.mode.open(self.selectedId)
+        if hasattr(self.mode, 'pos'):
+            self.putstone(self.mode.pos)
         
                 
     def OnDele(self, event):
@@ -286,32 +327,22 @@ class MyFrame(wx.Frame):
         return id
                           
     
-    def placeOne(self):
-        
-        if self.mode.nodes:
-            node = self.mode.nodes.pop(0)
-            dataBoard.place(*node)
-            self.board.Refresh(False)
-            self.stones.Set(dataBoard.strnodes)
-            
-    
-    def placeSome(self, num):
-        
-        for i in range(num):
-            node = self.mode.nodes.pop(0)
-            dataBoard.place(*node)
+    def putstone(self, num=1):
+        '''num 落子的数目，负数表示全部下完'''
+        if num < 0:
+            while self.mode.nodes:
+                node = self.mode.nodes.pop(0)
+                dataBoard.place(*node)
+        else:
+            for i in range(num):
+                if self.mode.nodes:
+                    node = self.mode.nodes.pop(0)
+                    dataBoard.place(*node)
+                else:
+                    break                    
         self.board.Refresh(False)
-        self.stones.Set(dataBoard.strnodes)
-        
-        
-    def placeAll(self):
-                
-        while self.mode.nodes:
-            node = self.mode.nodes.pop(0)
-            dataBoard.place(*node)
-        self.board.Refresh(False)
-        self.stones.Set(dataBoard.strnodes)
-            
+        self.stones.Set(dataBoard.strnodes)            
+                                  
             
 # our normal wxApp-derived class, as usual
 

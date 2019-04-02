@@ -27,11 +27,11 @@ class DataBoard(law.Board):
         
         if color is None:
             color = self.color
-            self.color = -self.color
             
-        super().place(x, y, color, self.hands)        
-        self.hands += 1
+        super().place(x, y, color, self.hands)
         
+        self.hands += 1
+        self.color = -self.color
         self.nodes.append((x,y,color))
 
 
