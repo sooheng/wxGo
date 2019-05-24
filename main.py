@@ -42,7 +42,7 @@ class MyFrame(wx.Frame):
         
         # 创建定时器
         self.clktime = 2000
-        self.timer = wx.Timer(self)
+        self.timer = wx.Timer(self)        
         
         # 创建菜单
         self.createMenuBar()
@@ -51,21 +51,21 @@ class MyFrame(wx.Frame):
         self.createStatusBar()
         
         #创建工具栏
-        self.createToolBar()      
+        #self.createToolBar()      
         
         # 创建面板
         self.history = wx.ListBox(self, -1, choices=self.mode.titles, size = wx.Size(400,150))        
                                    
-        self.board = GoBoard(wx.Image("back.png"), dataBoard, parent=self, style=wx.FULL_REPAINT_ON_RESIZE)
+        self.board = GoBoard(wx.Image("back.png"), dataBoard, parent=self, size = wx.Size(600,600), )#style=wx.FULL_REPAINT_ON_RESIZE)
         
         self.stones = wx.ListBox(self, -1, choices=dataBoard.strnodes, size=wx.Size(100,150))
         
         # add the panes to the manager
         #self._mgr.AddPane(self.toolbar, aui.AuiPaneInfo().Top())
         self._mgr.AddPane(self.history, aui.AuiPaneInfo().Left().Caption("历史记录"))
-        self._mgr.AddPane(self.stones, aui.AuiPaneInfo().Right().Caption("下棋位置"))
+        self._mgr.AddPane(self.stones, aui.AuiPaneInfo().Left().Caption("下棋位置"))
         self._mgr.AddPane(self.board, aui.AuiPaneInfo().CenterPane())
-        self._mgr.AddPane(self.toolbar, aui.AuiPaneInfo().Top())
+        #self._mgr.AddPane(self.toolbar, aui.AuiPaneInfo().Top())
 
         # tell the manager to "commit" all the changes just made
         self._mgr.Update()
@@ -74,9 +74,19 @@ class MyFrame(wx.Frame):
         self.history.Bind(wx.EVT_LISTBOX, self.OnHistory)
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
-        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
-    
-    
+        
+        #不得已而为之
+        self.timer2 = wx.Timer(self)
+        self.timer2.Start(100)
+        self.Bind(wx.EVT_TIMER, self.OnTimer2, self.timer2)
+        
+        
+    def OnTimer2(self, event):
+        
+        self.board.Refresh(False)
+        
+        
+        
     def createToolBar(self):
         
         self.toolbar = wx.ToolBar(self, -1)
@@ -92,6 +102,22 @@ class MyFrame(wx.Frame):
         self.statusBar.SetStatusWidths([-1,-1,-3,-3])
         self.statusBar.SetStatusText("可编辑：", 0)
         self.statusBar.SetStatusText(str(self.clicked), 1)
+        
+    
+    def OnResetHistory(self, event):
+        '''重新显示历史记录'''
+        pane = self._mgr.GetPane(self.history)
+        if not pane.IsShown():
+            pane.Show()
+            self._mgr.Update()
+    
+
+    def OnResetStones(self, event):
+        '''重新显示历史记录'''
+        pane = self._mgr.GetPane(self.stones)
+        if not pane.IsShown():
+            pane.Show()
+            self._mgr.Update()
         
         
     def OnHistory(self, event):
@@ -110,14 +136,15 @@ class MyFrame(wx.Frame):
         self.statusBar.SetStatusText(str(self.clicked), 1)
         
         
-    def OnLeftDown(self, event):
+    def OnLeftDown(self):
                 
-        if self.clicked:
+        if self.clicked and self.board.xy and dataBoard.canPlace(*self.board.xy):
             #编辑写入
             dataBoard.place(*self.board.xy)
-            self.board.Refresh(False)
             self.stones.Set(dataBoard.strnodes)
+            self.board.Refresh(False)
             statusText = str(self.board.xy)
+            self.board.xy = None
         else:
             #只可以读取
             if self.mode in (mine, expert):
@@ -131,7 +158,7 @@ class MyFrame(wx.Frame):
                         self.putstone(2)
                     statusText = "正确的位置"
                 else:
-                    statusText = "错误的位置"
+                    statusText = "错误的位置"        
         self.statusBar.SetStatusText(statusText, 2)
         
         
@@ -214,11 +241,15 @@ class MyFrame(wx.Frame):
         menuSets = wx.Menu()
         num = menuSets.Append(-1, "数字的显示")        
         tip = menuSets.Append(-1, "提示")
-        imag = menuSets.Append(-1, "保存图片")        
+        imag = menuSets.Append(-1, "保存图片")
+        resetHistory = menuSets.Append(-1, "恢复历史记录")
+        resetStones = menuSets.Append(-1, "恢复下棋位置")
         
         self.Bind(wx.EVT_MENU, self.OnNum, num)        
         self.Bind(wx.EVT_MENU, self.OnTip, tip)
         self.Bind(wx.EVT_MENU, self.OnImag, imag)
+        self.Bind(wx.EVT_MENU, self.OnResetHistory, resetHistory)
+        self.Bind(wx.EVT_MENU, self.OnResetStones, resetStones)
         
         menuBar = wx.MenuBar()        
         menuBar.Append(menuMode, "模式")
@@ -234,7 +265,7 @@ class MyFrame(wx.Frame):
         
         
     def OnClk(self, event):
-        
+        '''定时的时间设置事件处理'''
         clktime = wx.GetNumberFromUser(message='ms为单位：', prompt='', caption="定时器的间隔时间", value=self.clktime, min=0, max=60000)        
         if clktime >= 0:
             self.clktime = clktime
@@ -263,14 +294,14 @@ class MyFrame(wx.Frame):
         
                 
     def OnNewb(self, event):
-        
+        '''新建操作处理'''
         self.clea()
         self.mode.id = None
         self.clicked = True
         self.statusBar.SetStatusText(str(self.clicked), 1)
         
     def OnSave(self, event):
-        
+        '''保存事件处理'''
         self.mode.save(dataBoard.nodes)
         self.history.Set(self.mode.titles)        
         
@@ -287,12 +318,12 @@ class MyFrame(wx.Frame):
         
         
     def OnClea(self, event):
-        
+        '''重新事件处理'''
         self.clea()
         
         
     def OnDaka(self, event):
-    
+        '''打开事件处理'''
         self.clea()
         self.clicked = False
         self.statusBar.SetStatusText(str(self.clicked), 1)
@@ -302,13 +333,13 @@ class MyFrame(wx.Frame):
         
                 
     def OnDele(self, event):
-    
+        '''删除事件处理'''
         self.mode.delete(self.selectedId)
         self.history.Set(self.mode.titles)
     
     
     def clea(self):
-        
+        '''清空棋盘'''
         dataBoard.clear()
         self.board.Refresh(False)
         self.stones.Set(dataBoard.strnodes)

@@ -68,22 +68,20 @@ class Board():
     @staticmethod
     def aroundPieces(x, y):
         '''返回x, y的上下左右棋子坐标'''
-        around = [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]
-        filter_around = [(xy[0],xy[1]) for xy in around if xy[0]>=0 and xy[0]<=18 and xy[1]>=0 and xy[1]<=18]
-        return filter_around
+        around = ((x+1, y), (x-1, y), (x, y+1), (x, y-1))
+        return ((x, y) for x, y in around if 0 <= x < size and 0 <= y < size)
+        
     
     def sameColorPieces(self, x, y, color):
         '''返回 x, y 周围同色的棋子'''
         around = self.aroundPieces(x, y)
-        ret = [xy for xy in around if self.board[xy[0]][xy[1]].color == color]
-        return ret
+        return [(x, y) for x, y in around if self.board[x][y].color == color]         
     
     
     def hasQi(self, x, y):
         '''判断棋子x, y 有没有气'''
         around = self.aroundPieces(x, y)
-        for piece in around:
-            x, y = piece
+        for x, y in around:            
             if not self.board[x][y]:
                 return True
         return False
@@ -113,8 +111,7 @@ class Board():
         
     def checkBlock(self, block):
         '''检查一块有没有气'''
-        for piece in block:
-            x, y = piece
+        for x, y in block:           
             if self.hasQi(x, y):
                 return True
         return False
@@ -131,8 +128,7 @@ class Board():
         '''移除没气的块'''
         for i in range(len(self.blocks)):
             if not self.blocks[i].isLive:
-                for piece in self.blocks[i]:
-                    x, y = piece
+                for x, y in self.blocks[i]:                    
                     self.board[x][y] = NonePiece
                 if len(self.blocks[i]) == 1:
                     self.jiejin = (x, y)

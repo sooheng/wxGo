@@ -20,9 +20,19 @@ class DataBoard(law.Board):
     @property    
     def strnodes(self):
         '''字符化nodes,用于显示'''
-        return [str(node) for node in self.nodes]
-        
-        
+        def _str(x, y, color):
+            black = '●'
+            white = '○'
+            if color == 1:
+                return ','.join((str(x), str(y), black))
+            elif color == -1:
+                return ','.join((str(x), str(y), white))
+            else:
+                raise Exception("color 只能是1或者-1")
+                
+        return [_str(*node) for node in self.nodes]
+    
+    
     def place(self, x, y, color=None):
         
         if color is None:
@@ -36,7 +46,7 @@ class DataBoard(law.Board):
 
 
 #self.Refresh(False)更新画面
-class GoBoard(wx.Window):
+class GoBoard(wx.Panel):
     
     
     allPoints = [(x,y) for x in range(19) for y in range(19)]
@@ -46,6 +56,7 @@ class GoBoard(wx.Window):
     
         super().__init__(*args, **kwargs)        
         
+        self.xy = None
         self.data = dataBaord
         self.brush = {1 : wx.Brush("Black"), -1 : wx.Brush("White")}
         self.textcolor = {1 : wx.Colour(0, 0, 0), -1 : wx.Colour(255, 255, 255)}
@@ -66,7 +77,7 @@ class GoBoard(wx.Window):
         
         
     def calc(self):
-        
+        '''控件参数的计算'''
         w, h = self.GetSize()
         s = min(w, h)
         self.gap = s // 20
@@ -87,8 +98,8 @@ class GoBoard(wx.Window):
     def DrawXin(self, dc):
         brush = wx.Brush("Black")
         dc.SetBrush(brush)
-        for i in range(4, 19, 3):
-            for j in range(4, 19, 3):
+        for i in range(4, 19, 6):
+            for j in range(4, 19, 6):
                 dc.DrawCircle(self.gap*i, self.gap*j, 4)
     
     
@@ -102,7 +113,7 @@ class GoBoard(wx.Window):
     
     
     def DrawPieces(self, dc):
-        
+        '''画出所有棋子'''
         for point in self.allPoints:
             x, y = point
             piece = self.data.board[x][y]
@@ -111,7 +122,7 @@ class GoBoard(wx.Window):
                 
         
     def DrawPiece(self, dc, x, y, piece):
-        
+        '''画一个棋子'''
         x, y = self.L2P(x,y)
         
         dc.SetBrush(self.brush[piece.color])
@@ -123,7 +134,7 @@ class GoBoard(wx.Window):
         
         
     def OnPaint(self, event):
-        
+        '''画图事件处理器'''
         self.buffer = wx.Bitmap(self.backPhoto)
         dc = wx.BufferedPaintDC(self, self.buffer)
         self.DrawPieces(dc)
@@ -136,7 +147,8 @@ class GoBoard(wx.Window):
         
         
     def P2L(self, x, y):
-        
+        '''pixel to logic
+        点击的位置转化成围棋盘的位置'''
         calcul = lambda i : (i - self.halfgap) // self.gap
         x = calcul(x)
         if x < 0 or x > 18:
@@ -148,7 +160,7 @@ class GoBoard(wx.Window):
         
     
     def saveImage(self):
-    
+        '''图片保存'''
         name = time.strftime('%Y%m%d%H%M%S',time.localtime()) + ".jpg"
         with open(name, 'w'):
             pass
@@ -157,14 +169,13 @@ class GoBoard(wx.Window):
     
     
     def OnLeftDown(self, event):
-        
+        '''鼠标左键点击处理'''
         self.xy = self.P2L(*event.GetPosition())
-        if self.xy is not None:            
-            wx.PostEvent(self.GetParent(), event)
+        self.GetParent().OnLeftDown()
         
         
     def OnErase(self, event):
-        
+        '''控件擦除处理器'''
         dc = event.GetDC()
         if not dc:
             dc = wx.ClientDC(self)
@@ -175,7 +186,7 @@ class GoBoard(wx.Window):
     
     
     def OnSize(self, event):
-        
+        '''控件缩放处理器'''
         self.ClearBackground()
         self.calc()
                 

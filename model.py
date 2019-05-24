@@ -1,17 +1,10 @@
 import sqlite3, datetime, json
+    
+    
+    
+sqlite3.register_adapter(list, json.dumps)
 
-
-def adapt_list(alist):
-    return json.dumps(alist)
-    
-    
-def convert_list(slist):
-    return json.loads(slist)
-    
-    
-sqlite3.register_adapter(list, adapt_list)
-
-sqlite3.register_converter('list', convert_list)
+sqlite3.register_converter('list', json.loads)
 
     
 
@@ -59,7 +52,7 @@ class Model():
         id : 记录的主键'''
         st = self.deleteSt.format(table=self.__table) 
         dt= (id,)
-        self.cur.execute(st)
+        self.cur.execute(st, dt)
         self.__conn.commit()
         
         
