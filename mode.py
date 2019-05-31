@@ -1,5 +1,5 @@
 from model import Model
-import json, wx, pdb
+import wx, pdb
 
 
 class Mode():
@@ -25,12 +25,21 @@ class Mode():
     def titles(self):
         '''记录标题'''
         titles = self.model.getfiled('id', 'name', 'lastTime')
-        return [str(title) for title in titles]
+        _str = lambda id,name,lastTime : str(id) + ',' + name + ',' + str(lastTime)        
+        return [_str(*title) for title in titles]
             
-            
-    def open(self, id):
+    
+    @property
+    def title(self):
+        '''记录名'''
+        title = self.model.getfiled('name', id=self.id)
+        return title[0][0]
+    
+                
+    def open(self, id=None):
         '''打开nodes记录'''
-        self.id = id
+        if id is not None:
+            self.id = id
         self.nodes = self.model.getfiled('nodes', id=self.id)[0][0]        
         
         
@@ -50,7 +59,7 @@ class Mode2(Mode):
         
     @property
     def curentxy(self):
-    
+        '''返回缓存nodes里最新的一个棋子的坐标'''
         if self.nodes:
             node = self.nodes[0]
             x, y, color = node
@@ -58,14 +67,14 @@ class Mode2(Mode):
         
         
     def save(self, *args, **kwargs):
-        
+        '''保存函数'''
         super().save(*args, **kwargs)
         if self.id is not None:
             self.model.setfiled(self.id, pos=self.pos)
             
             
     def open(self, *args, **kwargs):
-        
+        '''打开方法'''
         super().open(*args, **kwargs)
         self.pos = self.model.getfiled('pos', id=self.id)[0][0]
         

@@ -24,9 +24,9 @@ class DataBoard(law.Board):
             black = '●'
             white = '○'
             if color == 1:
-                return ','.join((str(x), str(y), black))
+                return ','.join((str(x+1), str(y+1), black))
             elif color == -1:
-                return ','.join((str(x), str(y), white))
+                return ','.join((str(x+1), str(y+1), white))
             else:
                 raise Exception("color 只能是1或者-1")
                 
@@ -60,7 +60,7 @@ class GoBoard(wx.Panel):
         self.data = dataBaord
         self.brush = {1 : wx.Brush("Black"), -1 : wx.Brush("White")}
         self.textcolor = {1 : wx.Colour(0, 0, 0), -1 : wx.Colour(255, 255, 255)}
-        self.hasNumber = True        
+        self.showNumber = True        
         self.image = image       
         self.calc()
         
@@ -70,9 +70,9 @@ class GoBoard(wx.Panel):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         
         
-    def toggleNumber(self):
+    def setShowNumber(self, shown):
         
-        self.hasNumber = not self.hasNumber
+        self.showNumber = shown
         self.Refresh(False)
         
         
@@ -82,8 +82,9 @@ class GoBoard(wx.Panel):
         s = min(w, h)
         self.gap = s // 20
         self.halfgap = self.gap // 2
+        self.quartergap = self.gap // 4
         self.xgap = self.gap // 3
-        self.ygap = self.gap // 3
+        self.ygap = self.gap // 3        
         
         font = self.GetFont()
         font.SetPointSize(self.gap // 3)
@@ -93,8 +94,18 @@ class GoBoard(wx.Panel):
         dc = wx.BufferedDC(None, self.backPhoto)
         self.DrawLines(dc)
         self.DrawXin(dc)
+        self.DrawText(dc)
         
-                
+    
+    def DrawText(self, dc):
+        
+        pen = wx.Pen("Black")
+        dc.SetPen(pen)        
+        for i in range(1,20):
+            dc.DrawText('{:^6d}'.format(i), i*self.gap-self.halfgap, 0)
+            dc.DrawText(str(i), 0, i*self.gap - self.quartergap)
+        
+        
     def DrawXin(self, dc):
         brush = wx.Brush("Black")
         dc.SetBrush(brush)
@@ -128,7 +139,7 @@ class GoBoard(wx.Panel):
         dc.SetBrush(self.brush[piece.color])
         dc.DrawCircle(x, y, self.halfgap)
         
-        if self.hasNumber:
+        if self.showNumber:
             dc.SetTextForeground(self.textcolor[-piece.color])
             dc.DrawText(str(piece.hand), x-self.xgap, y-self.ygap)
         

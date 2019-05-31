@@ -90,7 +90,7 @@ class Model():
 
 def __test__():
     '''测试函数'''
-    import json, pdb
+    import pdb
     model = Model('test')
     nodes = [(1,2,3),(4,5,6)]
     pdb.set_trace()

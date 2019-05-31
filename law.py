@@ -153,10 +153,10 @@ class Board():
             #从blocks去掉所有相邻同色块
             self.blocks = list(filter(None, self.blocks))
             #合并相邻同色块到temp_block
-            temp_block = Block([], color)
+            temp_block = Block([(x, y)], color)
             temp_block = sum(temp_blocks, temp_block)
             #向temp_block加入(x,y)
-            temp_block.append(x, y)
+            #temp_block.append(x, y)
             #向blocks加入最终合并的块
             self.blocks.append(temp_block)
     
@@ -166,36 +166,29 @@ class Board():
 
 
 class Block():
-    
+
     def __init__(self, pieces, color):
-        
         self.pieces = pieces
         self.color = color
         self.isLive = True
         
-    def append(self, x, y):
-        
+    def append(self, x, y):        
         self.pieces.append((x, y))
         
-    def __add__(self, other):
-        
+    def __add__(self, other):        
         self.pieces += other.pieces
         return self
     
-    def __len__(self):
-        
+    def __len__(self):        
         return len(self.pieces)
     
-    def __iter__(self):
-        
+    def __iter__(self):        
         return iter(self.pieces)
     
-    def __repr__(self):
-        
+    def __repr__(self):        
         return str(self.pieces) + str(self.isLive)
     
-    def __contains__(self, item):
-        
+    def __contains__(self, item):        
         for piece in self.pieces:
             if item == piece:
                 return True
