@@ -1,6 +1,19 @@
 import wx, law, time
 
 
+
+def node_str(x, y, color):
+    black = '●'
+    white = '○'
+    if color == 1:
+        return ','.join((str(x+1), str(y+1), black))  
+    elif color == -1:
+        return ','.join((str(x+1), str(y+1), white))  
+    else:    
+        raise Exception("color 只能是1或者-1")
+
+
+        
 class DataBoard(law.Board):
 
     
@@ -15,24 +28,14 @@ class DataBoard(law.Board):
         self.color = 1
         self.hands = 1        
         self.nodes = []
-        
-        
-    @property    
+    
+    
+    @property
     def strnodes(self):
         '''字符化nodes,用于显示'''
-        def _str(x, y, color):
-            black = '●'
-            white = '○'
-            if color == 1:
-                return ','.join((str(x+1), str(y+1), black))
-            elif color == -1:
-                return ','.join((str(x+1), str(y+1), white))
-            else:
-                raise Exception("color 只能是1或者-1")
-                
-        return [_str(*node) for node in self.nodes]
-    
-    
+        return [node_str(*node) for node in self.nodes]
+        
+        
     def place(self, x, y, color=None):
         
         if color is None:

@@ -5,9 +5,9 @@ Created on Sat Mar 16 11:58:17 2019
 @author: user
 """
 
-import wx, pdb
+import wx, sgf, os, webbrowser
 import wx.lib.agw.aui as aui
-from board import GoBoard, DataBoard
+from board import GoBoard, DataBoard, node_str
 from mode import Mode, Mode2
 
 
@@ -38,7 +38,6 @@ class MyFrame(wx.Frame):
         
         # 创建设置
         self.mode = mine
-        self.clicked = True
         
         #
         self.createIcon()
@@ -52,10 +51,7 @@ class MyFrame(wx.Frame):
         
         #创建状态条
         self.createStatusBar()
-        
-        #创建工具栏
-        #self.createToolBar()      
-        
+                
         # 创建面板
         self.history = wx.ListBox(self, -1, choices=self.mode.titles, size = wx.Size(400,150))        
                                    
@@ -78,13 +74,37 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         
-        #不得已而为之
+        #
         self.timer2 = wx.Timer(self)
         self.timer2.Start(100)
         self.Bind(wx.EVT_TIMER, self.OnTimer2, self.timer2)
         
 
-#定时函数        
+#定时函数
+    def OnClk(self, event):
+        '''定时的时间设置事件处理'''
+        clktime = wx.GetNumberFromUser(message='ms为单位：', prompt='', caption="定时器的间隔时间", value=self.clktime, min=0, max=60000)        
+        if clktime >= 0:
+            self.clktime = clktime
+            if self.timer.IsRunning():
+                self.timer.Start(self.clktime)
+
+
+    def OnQuk(self, event):
+        '''快速'''
+        self.putstone(-1)
+    
+    
+    def OnMan(self, event):
+        '''手动'''
+        self.timer.Stop()        
+        
+        
+    def OnAut(self, event):
+        '''自动'''
+        self.timer.Start(self.clktime)
+
+        
     def OnTimer(self, event):
         
         self.putstone()
@@ -138,18 +158,21 @@ class MyFrame(wx.Frame):
         menuSets = wx.Menu()
         num = menuSets.AppendCheckItem(-1, "显示数字")
         num.Check(True)
+        self.enableEdit = menuSets.AppendCheckItem(-1, "可写入")        
+        self.enableEdit.Check(True)
         resetHistory = menuSets.Append(-1, "显示历史记录")
         resetStones = menuSets.Append(-1, "显示下棋位置")        
         
-        self.Bind(wx.EVT_MENU, self.OnNum, num)                
+        self.Bind(wx.EVT_MENU, self.OnNum, num)
+        self.Bind(wx.EVT_MENU, self.OnEnableEdit, self.enableEdit)
         self.Bind(wx.EVT_MENU, self.OnResetHistory, resetHistory)
         self.Bind(wx.EVT_MENU, self.OnResetStones, resetStones)
         
         menuOutIn = wx.Menu()
-        imag = menuOutIn.Append(-1, "保存图片")
+        imag = menuOutIn.Append(-1, "导出图片")
         outsgf = menuOutIn.Append(-1, "导出sgf文件")
-        insgf = menuOutIn.Append(-1, "读取sgf文件")
-        insgfs = menuOutIn.Append(-1, "读取sgf文件目录")
+        insgf = menuOutIn.Append(-1, "导入sgf文件")
+        insgfs = menuOutIn.Append(-1, "导入sgf文件目录")
         
         self.Bind(wx.EVT_MENU, self.OnImag, imag)
         self.Bind(wx.EVT_MENU, self.OnOutsgf, outsgf)
@@ -162,14 +185,20 @@ class MyFrame(wx.Frame):
         
         self.Bind(wx.EVT_MENU, self.OnTip, tip)        
         self.Bind(wx.EVT_MENU, self.OnPos, daan)
-        
+                
         menuAbout = wx.Menu()
+        author = menuAbout.Append(-1, "联系作者")        
+        bangzhu = menuAbout.Append(-1, "在线使用帮助")
+        
+        self.Bind(wx.EVT_MENU, self.OnAuthor, author)        
+        self.Bind(wx.EVT_MENU, self.OnBangzhu, bangzhu)
                 
         menuBar = wx.MenuBar()        
         menuBar.Append(menuMode, "模式")
-        menuBar.Append(menuEdit, "编辑")
+        menuBar.Append(menuEdit, "编辑")        
         menuBar.Append(menuClok, "定时")
         menuBar.Append(menuSets, "设置")
+        menuBar.Append(menuOutIn, "导入导出")
         menuBar.Append(menuOthers, "其他")
         menuBar.Append(menuAbout, "关于")
         self.SetMenuBar(menuBar)
@@ -179,25 +208,100 @@ class MyFrame(wx.Frame):
         '''设置图标'''
         icon = wx.Icon(name='图标.jpg', type=wx.BITMAP_TYPE_JPEG)
         self.SetIcon(icon)        
-        
-                
-    def createToolBar(self):
-        
-        self.toolbar = wx.ToolBar(self, -1)
-        self.toolbar.AddTool(tb_next, "next", wx.Bitmap("ps.png"))
-        self.toolbar.Bind(wx.EVT_TOOL, self.OnNext, id=tb_next)
-        self.toolbar.Realize()
-        
+                               
         
     def createStatusBar(self):
         
         self.statusBar = self.CreateStatusBar()
         self.statusBar.SetFieldsCount(4)
         self.statusBar.SetStatusWidths([-1,-1,-3,-3])
-        self.statusBar.SetStatusText("可编辑：", 0)
-        self.statusBar.SetStatusText(str(self.clicked), 1)
+        self.statusBar.SetStatusText("编辑状态：", 0)
+        self.statusBar.SetStatusText(str(self.enableEdit.IsChecked()), 1)
+        
+
+#所有的模式函数
+    def OnMine(self, event):
+        
+        self._change_mode(mine)
+        
+        
+    def OnExpert(self, event):
+        
+        self._change_mode(expert)      
+        
+
+    def OnDingsi(self, event):
+        
+        self._change_mode(dingsi, False)        
+                
+    
+    def OnSihuo(self, event):
+        
+        self._change_mode(sihuo, False)
+                        
+        
+    def _change_mode(self, mode, enableClock=True):
+        
+        self.mode = mode
+        menuBar = self.GetMenuBar()
+        menuBar.EnableTop(2, enableClock)
+        self.history.Set(self.mode.titles) 
+
+
+#所有的编辑函数        
+    def OnNewb(self, event):
+        '''新建操作处理'''
+        self.clea()
+        self.mode.id = None
+        self.enableEdit.Check(True)
+        self.statusBar.SetStatusText(str(self.enableEdit.IsChecked()), 1)
+        
+        
+    def OnSave(self, event):
+        '''保存事件处理'''
+        self.mode.save(dataBoard.nodes)
+        self.history.Set(self.mode.titles)        
         
     
+    def OnSaveAs(self, event):
+        
+        self.mode.id = None
+        self.OnSave(event)
+        
+        
+    def OnClea(self, event):
+        '''重新事件处理'''
+        self.clea()
+        
+        
+    def OnDaka(self, event):
+        '''打开事件处理'''
+        self.clea()
+        self.enableEdit.Check(False)
+        self.statusBar.SetStatusText(str(self.enableEdit.IsChecked()), 1)
+        self.mode.open(self.selectedId)
+        if hasattr(self.mode, 'pos'):
+            self.putstone(self.mode.pos)
+        self.SetTitle(self.mode.title)
+        
+                
+    def OnDele(self, event):
+        '''删除事件处理'''
+        self.mode.delete(self.selectedId)
+        self.history.Set(self.mode.titles)
+
+
+#设置的函数
+    def OnNum(self, event):
+        '''数字显示'''
+        self.board.setShowNumber(event.IsChecked())
+        
+        
+    def OnEnableEdit(self, event):
+        '''写入保护'''
+        self.statusBar.SetStatusText(str(self.enableEdit.IsChecked()), 1)
+        
+        
     def OnResetHistory(self, event):
         '''重新显示历史记录'''
         pane = self._mgr.GetPane(self.history)
@@ -224,16 +328,74 @@ class MyFrame(wx.Frame):
         dataBoard.clear()
         self.putstone(num)        
         
+
+    @property
+    def selectedId(self):
+        
+        num = self.history.GetSelection()
+        id = self.history.GetString(num).strip('()').split(',')[0]
+        return id
+
+
+#导入导出的函数
+    def OnImag(self, event):
+        
+        self.board.saveImage()  
+
+
+    def OnInsgf(self, event):
+        '''导入sgf文件'''
+        file_wildcard = '*.sgf'
+        dlg = wx.FileDialog(self, "选择sgf棋谱文件", os.getcwd(), wildcard = file_wildcard)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.filename = dlg.GetPath()
+            sgf.read(self.filename, self.mode)
+            self.history.Set(self.mode.titles)  
+        dlg.Destroy()
+
     
-    def OnNext(self, event):
+    def OnInsgfs(self, event):
+        '''导入sgf文件夹'''
+        dlg = wx.DirDialog(self, "选择文件夹", style=wx.DD_DEFAULT_STYLE)
+        if dlg.ShowModal() == wx.ID_OK:
+            sgf.readdir(dlg.GetPath(), self.mode)
+            self.history.Set(self.mode.titles)  
+        dlg.Destroy()
         
-        self.clicked = not self.clicked
-        self.statusBar.SetStatusText(str(self.clicked), 1)
+    
+    def OnOutsgf(self, event):
+        '''导出sgf文件'''
+        sgf.write(self.mode)
+    
+#其他
+    def OnTip(self, event):
         
+        s = [node_str(*node) for node in self.mode.nodes]
+        wx.MessageBox(str(s), caption="围棋记录", style=wx.OK)
+ 
+    
+    def OnPos(self, event):
+    
+        num = wx.GetNumberFromUser(message='', prompt='', caption="插入的断点", value=0, min=0, max=len(dataBoard.nodes))
+        if num != -1:
+            self.mode.pos = num
+
+            
+#关于
+    def OnAuthor(self, event):
+   
+        wx.MessageBox("zz5432@qq.com", caption="作者邮箱", style=wx.OK)
+
         
+    def OnBangzhu(self, event):
+        
+        webbrowser.open('https://sooheng.github.io')
+
+        
+##            
     def OnLeftDown(self):
                 
-        if self.clicked and self.board.xy and dataBoard.canPlace(*self.board.xy):
+        if self.enableEdit.IsChecked() and self.board.xy and dataBoard.canPlace(*self.board.xy):
             #编辑写入
             dataBoard.place(*self.board.xy)
             self.stones.Set(dataBoard.strnodes)
@@ -263,139 +425,14 @@ class MyFrame(wx.Frame):
         self._mgr.UnInit()
         event.Skip()
 
-    
-    def OnMine(self, event):
-        
-        self._change_mode(mine)
-        
-        
-    def OnExpert(self, event):
-        
-        self._change_mode(expert)      
-        
-
-    def OnDingsi(self, event):
-        
-        self._change_mode(dingsi, False)        
-                
-    
-    def OnSihuo(self, event):
-        
-        self._change_mode(sihuo, False)
-                        
-        
-    def _change_mode(self, mode, enableClock=True):
-        
-        self.mode = mode
-        menuBar = self.GetMenuBar()
-        menuBar.EnableTop(2, enableClock)
-        self.history.Set(self.mode.titles)        
-        
-        
-
-
-
-    def OnTip(self, event):
-        
-        wx.MessageBox(str(self.mode.nodes), caption="围棋记录", style=wx.OK)
-        
-        
-    def OnClk(self, event):
-        '''定时的时间设置事件处理'''
-        clktime = wx.GetNumberFromUser(message='ms为单位：', prompt='', caption="定时器的间隔时间", value=self.clktime, min=0, max=60000)        
-        if clktime >= 0:
-            self.clktime = clktime
-            if self.timer.IsRunning():
-                self.timer.Start(self.clktime)
-                
-        
-    def OnNum(self, event):
-        
-        self.board.setShowNumber(event.IsChecked())
-        
-    
-    def OnQuk(self, event):
-        
-        self.putstone(-1)
-    
-    
-    def OnMan(self, event):
-        
-        self.timer.Stop()        
-        
-        
-    def OnAut(self, event):
-        
-        self.timer.Start(self.clktime)
-        
-                
-    def OnNewb(self, event):
-        '''新建操作处理'''
-        self.clea()
-        self.mode.id = None
-        self.clicked = True
-        self.statusBar.SetStatusText(str(self.clicked), 1)
-        
-    def OnSave(self, event):
-        '''保存事件处理'''
-        self.mode.save(dataBoard.nodes)
-        self.history.Set(self.mode.titles)        
-        
-    
-    def OnSaveAs(self, event):
-        
-        self.mode.id = None
-        self.OnSave(event)              
-        
-        
-    def OnPos(self, event):
-    
-        num = wx.GetNumberFromUser(message='', prompt='', caption="插入的断点", value=0, min=0, max=len(dataBoard.nodes))
-        if num != -1:
-            self.mode.pos = num
-        
-        
-    def OnClea(self, event):
-        '''重新事件处理'''
-        self.clea()
-        
-        
-    def OnDaka(self, event):
-        '''打开事件处理'''
-        self.clea()
-        self.clicked = False
-        self.statusBar.SetStatusText(str(self.clicked), 1)
-        self.mode.open(self.selectedId)
-        if hasattr(self.mode, 'pos'):
-            self.putstone(self.mode.pos)
-        
-                
-    def OnDele(self, event):
-        '''删除事件处理'''
-        self.mode.delete(self.selectedId)
-        self.history.Set(self.mode.titles)
-    
-    
+ 
     def clea(self):
         '''清空棋盘'''
         dataBoard.clear()
         self.board.Refresh(False)
         self.stones.Set(dataBoard.strnodes)
+
         
-        
-    def OnImag(self, event):
-        
-        self.board.saveImage()
-        
-        
-    @property
-    def selectedId(self):
-        
-        num = self.history.GetSelection()
-        id = self.history.GetString(num).strip('()').split(',')[0]
-        return id
-                          
-    
     def putstone(self, num=1):
         '''num 落子的数目，负数表示全部下完'''
         if num < 0:
@@ -410,7 +447,9 @@ class MyFrame(wx.Frame):
                 else:
                     break                    
         self.board.Refresh(False)
-        self.stones.Set(dataBoard.strnodes)            
+        self.stones.Set(dataBoard.strnodes)
+        if not self.mode.nodes:
+            wx.MessageBox("已经完成", caption="UjsGo", style=wx.OK)
                                   
             
 # our normal wxApp-derived class, as usual

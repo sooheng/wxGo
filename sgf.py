@@ -1,9 +1,5 @@
 import re, os, shutil
-from model import Model
 
-
-
-expert = Model('expert')
 
 trantab = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5, 'g': 6,
  'h': 7, 'i': 8, 'j': 9, 'k': 10, 'l': 11, 'm': 12, 'n': 13, 'o': 14,
@@ -48,23 +44,25 @@ def sgf2sql(sgf_str):
     return(x, y, color)
 
 
-def read(name):
+def read(name, mode):
     '''按文件导入棋谱'''
     if name.endswith('.sgf') or name.endswith('.SGF'):
         with open(name) as fp:
             qipu = fp.read()
+        
+        filename = os.path.split(name)
         nodes = pattern_nodes.findall(qipu)
         players = pattern_players.findall(qipu)
         
         _nodes = map(sgf2sql, nodes)
-        _name = ','.join(players)
+        _name = filename[-1] + ','.join(players)
         
-        expert.insert(list(_nodes), _name)
+        mode.model.insert(list(_nodes), _name)
 
 
-def readdir(dirname):
+def readdir(dirname, mode):
     '''按目录导入棋谱'''
-    processed_dirname = "已导入" + dirname
+    processed_dirname = "已导入的棋谱"
     if not os.path.exists(processed_dirname):
         os.mkdir(processed_dirname)
     
@@ -72,5 +70,5 @@ def readdir(dirname):
     for file in files:
         fullfile = os.path.join(dirname, file)
         if os.path.isfile(fullfile):
-            read(fullfile)
+            read(fullfile, mode)
             shutil.move(fullfile, processed_dirname)

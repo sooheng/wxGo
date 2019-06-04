@@ -1,5 +1,5 @@
 from model import Model
-import wx, pdb
+import wx
 
 
 class Mode():
