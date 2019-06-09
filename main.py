@@ -53,17 +53,17 @@ class MyFrame(wx.Frame):
         self.createStatusBar()
                 
         # 创建面板
-        self.history = wx.ListBox(self, -1, choices=self.mode.titles, size = wx.Size(400,150))        
+        self.history = wx.ListBox(self, -1, choices=self.mode.titles, size = wx.Size(550,700))        
                                    
-        self.board = GoBoard(wx.Image("back.png"), dataBoard, parent=self)#style=wx.FULL_REPAINT_ON_RESIZE)
+        self.board = GoBoard(wx.Image("back.png"), dataBoard, parent=self, size=(600, 600))#style=wx.FULL_REPAINT_ON_RESIZE)
         
-        self.stones = wx.ListBox(self, -1, choices=dataBoard.strnodes, size=wx.Size(100,150))
+        self.stones = wx.ListBox(self, -1, choices=dataBoard.strnodes, size=wx.Size(50,700))
         
         # add the panes to the manager
         #self._mgr.AddPane(self.toolbar, aui.AuiPaneInfo().Top())
-        self._mgr.AddPane(self.history, aui.AuiPaneInfo().Left().Caption("历史记录"))
-        self._mgr.AddPane(self.stones, aui.AuiPaneInfo().Right().Caption("下棋位置"))
-        self._mgr.AddPane(self.board, aui.AuiPaneInfo().CenterPane())
+        self._mgr.AddPane(self.history, aui.AuiPaneInfo().Left().Caption("历史记录").Name('history'))
+        self._mgr.AddPane(self.stones, aui.AuiPaneInfo().Right().Caption("下棋位置").Name('stone'))
+        self._mgr.AddPane(self.board, aui.AuiPaneInfo().CenterPane().Name('board'))
         #self._mgr.AddPane(self.toolbar, aui.AuiPaneInfo().Top())
 
         # tell the manager to "commit" all the changes just made
@@ -242,6 +242,7 @@ class MyFrame(wx.Frame):
         
     def _change_mode(self, mode, enableClock=True):
         
+        self.timer.Stop() 
         self.mode = mode
         menuBar = self.GetMenuBar()
         menuBar.EnableTop(2, enableClock)
@@ -272,6 +273,7 @@ class MyFrame(wx.Frame):
     def OnClea(self, event):
         '''重新事件处理'''
         self.clea()
+        self.mode.open()
         
         
     def OnDaka(self, event):
@@ -399,6 +401,7 @@ class MyFrame(wx.Frame):
             #编辑写入
             dataBoard.place(*self.board.xy)
             self.stones.Set(dataBoard.strnodes)
+            
             self.board.Refresh(False)
             statusText = str(self.board.xy)
             self.board.xy = None
@@ -448,6 +451,7 @@ class MyFrame(wx.Frame):
                     break                    
         self.board.Refresh(False)
         self.stones.Set(dataBoard.strnodes)
+        
         if not self.mode.nodes:
             wx.MessageBox("已经完成", caption="UjsGo", style=wx.OK)
                                   
