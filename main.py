@@ -26,7 +26,7 @@ dingsi = Mode2('dingsi')
 
 class MyFrame(wx.Frame):
 
-    def __init__(self, parent, id=-1, title="围棋打谱", pos=wx.DefaultPosition,
+    def __init__(self, parent, id=-1, title="围棋打谱 UJS GO", pos=wx.DefaultPosition,
                  size=(1200, 700), style=wx.DEFAULT_FRAME_STYLE | wx.SYSTEM_MENU,):
 
         wx.Frame.__init__(self, parent, id, title, pos, size, style)
