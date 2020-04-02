@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import wx, law, time
 
 
@@ -18,13 +20,10 @@ class DataBoard(law.Board):
 
     
     def __init__(self):
-        
         self.clear()
 
-    
     def clear(self):
-        
-        super().__init__()
+        super(DataBoard, self).__init__()
         self.color = 1
         self.hands = 1        
         self.nodes = []
@@ -32,7 +31,7 @@ class DataBoard(law.Board):
     
     @property
     def strnodes(self):
-        '''字符化nodes,用于显示'''
+        """字符化nodes,用于显示"""
         return [node_str(*node) for node in self.nodes]
         
         
@@ -41,7 +40,7 @@ class DataBoard(law.Board):
         if color is None:
             color = self.color
             
-        super().place(x, y, color, self.hands)
+        super(DataBoard, self).place(x, y, color, self.hands)
         
         self.hands += 1
         self.color = -self.color
@@ -57,7 +56,7 @@ class GoBoard(wx.Panel):
     
     def __init__(self, image, dataBaord, *args, **kwargs):
     
-        super().__init__(*args, **kwargs)        
+        super(GoBoard, self).__init__(*args, **kwargs)
         
         self.xy = None
         self.data = dataBaord
@@ -80,7 +79,7 @@ class GoBoard(wx.Panel):
         
         
     def calc(self):
-        '''控件参数的计算'''
+        """控件参数的计算"""
         w, h = self.GetSize()
         s = min(w, h)
         self.gap = s // 20
@@ -127,7 +126,7 @@ class GoBoard(wx.Panel):
     
     
     def DrawPieces(self, dc):
-        '''画出所有棋子'''
+        """画出所有棋子"""
         for point in self.allPoints:
             x, y = point
             piece = self.data.board[x][y]
@@ -136,19 +135,20 @@ class GoBoard(wx.Panel):
                 
         
     def DrawPiece(self, dc, x, y, piece):
-        '''画一个棋子'''
+        """画一个棋子"""
         x, y = self.L2P(x,y)
+        brush = self.brush.get(piece.color)
+        if brush is not None:
+            dc.SetBrush(brush)
+            dc.DrawCircle(x, y, self.halfgap)
         
-        dc.SetBrush(self.brush[piece.color])
-        dc.DrawCircle(x, y, self.halfgap)
-        
-        if self.showNumber:
+        if self.showNumber and piece.color:
             dc.SetTextForeground(self.textcolor[-piece.color])
             dc.DrawText(str(piece.hand), x-self.xgap, y-self.ygap)
         
         
     def OnPaint(self, event):
-        '''画图事件处理器'''
+        """画图事件处理器"""
         self.buffer = wx.Bitmap(self.backPhoto)
         dc = wx.BufferedPaintDC(self, self.buffer)
         self.DrawPieces(dc)
@@ -161,8 +161,8 @@ class GoBoard(wx.Panel):
         
         
     def P2L(self, x, y):
-        '''pixel to logic
-        点击的位置转化成围棋盘的位置'''
+        """pixel to logic
+        点击的位置转化成围棋盘的位置"""
         calcul = lambda i : (i - self.halfgap) // self.gap
         x = calcul(x)
         if x < 0 or x > 18:
@@ -174,7 +174,7 @@ class GoBoard(wx.Panel):
         
     
     def saveImage(self):
-        '''图片保存'''
+        """图片保存"""
         name = time.strftime('%Y%m%d%H%M%S',time.localtime()) + ".jpg"
         with open(name, 'w'):
             pass
@@ -183,13 +183,13 @@ class GoBoard(wx.Panel):
     
     
     def OnLeftDown(self, event):
-        '''鼠标左键点击处理'''
+        """鼠标左键点击处理"""
         self.xy = self.P2L(*event.GetPosition())
         self.GetParent().OnLeftDown()
         
         
     def OnErase(self, event):
-        '''控件擦除处理器'''
+        """控件擦除处理器"""
         dc = event.GetDC()
         if not dc:
             dc = wx.ClientDC(self)
@@ -200,7 +200,7 @@ class GoBoard(wx.Panel):
     
     
     def OnSize(self, event):
-        '''控件缩放处理器'''
+        """控件缩放处理器"""
         self.ClearBackground()
         self.calc()
                 

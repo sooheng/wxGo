@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 Created on Sat Mar 16 11:58:17 2019
 
@@ -82,7 +83,7 @@ class MyFrame(wx.Frame):
 
 #定时函数
     def OnClk(self, event):
-        '''定时的时间设置事件处理'''
+        """定时的时间设置事件处理"""
         clktime = wx.GetNumberFromUser(message='ms为单位：', prompt='', caption="定时器的间隔时间", value=self.clktime, min=0, max=60000)        
         if clktime >= 0:
             self.clktime = clktime
@@ -91,17 +92,17 @@ class MyFrame(wx.Frame):
 
 
     def OnQuk(self, event):
-        '''快速'''
+        """快速"""
         self.putstone(-1)
     
     
     def OnMan(self, event):
-        '''手动'''
+        """手动"""
         self.timer.Stop()        
         
         
     def OnAut(self, event):
-        '''自动'''
+        """自动"""
         self.timer.Start(self.clktime)
 
         
@@ -205,8 +206,8 @@ class MyFrame(wx.Frame):
         
         
     def createIcon(self):
-        '''设置图标'''
-        icon = wx.Icon(name='图标.jpg', type=wx.BITMAP_TYPE_JPEG)
+        """设置图标"""
+        icon = wx.Icon(name='logo.jpg', type=wx.BITMAP_TYPE_JPEG)
         self.SetIcon(icon)        
                                
         
@@ -251,7 +252,7 @@ class MyFrame(wx.Frame):
 
 #所有的编辑函数        
     def OnNewb(self, event):
-        '''新建操作处理'''
+        """新建操作处理"""
         self.clea()
         self.mode.id = None
         self.enableEdit.Check(True)
@@ -259,7 +260,7 @@ class MyFrame(wx.Frame):
         
         
     def OnSave(self, event):
-        '''保存事件处理'''
+        """保存事件处理"""
         self.mode.save(dataBoard.nodes)
         self.history.Set(self.mode.titles)        
         
@@ -271,13 +272,13 @@ class MyFrame(wx.Frame):
         
         
     def OnClea(self, event):
-        '''重新事件处理'''
+        """重新事件处理"""
         self.clea()
         self.mode.open()
         
         
     def OnDaka(self, event):
-        '''打开事件处理'''
+        """打开事件处理"""
         self.clea()
         self.enableEdit.Check(False)
         self.statusBar.SetStatusText(str(self.enableEdit.IsChecked()), 1)
@@ -288,24 +289,24 @@ class MyFrame(wx.Frame):
         
                 
     def OnDele(self, event):
-        '''删除事件处理'''
+        """删除事件处理"""
         self.mode.delete(self.selectedId)
         self.history.Set(self.mode.titles)
 
 
 #设置的函数
     def OnNum(self, event):
-        '''数字显示'''
+        """数字显示"""
         self.board.setShowNumber(event.IsChecked())
         
         
     def OnEnableEdit(self, event):
-        '''写入保护'''
+        """写入保护"""
         self.statusBar.SetStatusText(str(self.enableEdit.IsChecked()), 1)
         
         
     def OnResetHistory(self, event):
-        '''重新显示历史记录'''
+        """重新显示历史记录"""
         pane = self._mgr.GetPane(self.history)
         if not pane.IsShown():
             pane.Show()
@@ -313,7 +314,7 @@ class MyFrame(wx.Frame):
     
 
     def OnResetStones(self, event):
-        '''重新显示下棋位置'''
+        """重新显示下棋位置"""
         pane = self._mgr.GetPane(self.stones)
         if not pane.IsShown():
             pane.Show()
@@ -346,7 +347,7 @@ class MyFrame(wx.Frame):
 
 
     def OnInsgf(self, event):
-        '''导入sgf文件'''
+        """导入sgf文件"""
         file_wildcard = '*.sgf'
         dlg = wx.FileDialog(self, "选择sgf棋谱文件", os.getcwd(), wildcard = file_wildcard)
         if dlg.ShowModal() == wx.ID_OK:
@@ -357,7 +358,7 @@ class MyFrame(wx.Frame):
 
     
     def OnInsgfs(self, event):
-        '''导入sgf文件夹'''
+        """导入sgf文件夹"""
         dlg = wx.DirDialog(self, "选择文件夹", style=wx.DD_DEFAULT_STYLE)
         if dlg.ShowModal() == wx.ID_OK:
             sgf.readdir(dlg.GetPath(), self.mode)
@@ -366,7 +367,7 @@ class MyFrame(wx.Frame):
         
     
     def OnOutsgf(self, event):
-        '''导出sgf文件'''
+        """导出sgf文件"""
         sgf.write(self.mode)
     
 #其他
@@ -430,14 +431,14 @@ class MyFrame(wx.Frame):
 
  
     def clea(self):
-        '''清空棋盘'''
+        """清空棋盘"""
         dataBoard.clear()
         self.board.Refresh(False)
         self.stones.Set(dataBoard.strnodes)
 
         
     def putstone(self, num=1):
-        '''num 落子的数目，负数表示全部下完'''
+        """num 落子的数目，负数表示全部下完"""
         if num < 0:
             while self.mode.nodes:
                 node = self.mode.nodes.pop(0)

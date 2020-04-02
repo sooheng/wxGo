@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 Created on Mon Feb 25 12:12:00 2019
 
@@ -13,9 +14,9 @@ class Piece():
     __slots__ = ("color", "hand")
     
     def __init__(self, color, hand):
-        '''color: Black is 1 , White is -1
+        """color: Black is 1 , White is -1
         hand: is a int number
-        '''
+        """
         self.color = color
         self.hand = hand
         
@@ -58,7 +59,7 @@ class Jie():
         self.value = value
 
 
-class Board():
+class Board(object):
     
     def __init__(self):
         self.board = [[NonePiece,] * size for i in range(size)]
@@ -67,19 +68,19 @@ class Board():
     
     @staticmethod
     def aroundPieces(x, y):
-        '''返回x, y的上下左右棋子坐标'''
+        """返回x, y的上下左右棋子坐标"""
         around = ((x+1, y), (x-1, y), (x, y+1), (x, y-1))
         return ((x, y) for x, y in around if 0 <= x < size and 0 <= y < size)
         
     
     def sameColorPieces(self, x, y, color):
-        '''返回 x, y 周围同色的棋子'''
+        """返回 x, y 周围同色的棋子"""
         around = self.aroundPieces(x, y)
         return [(x, y) for x, y in around if self.board[x][y].color == color]         
     
     
     def hasQi(self, x, y):
-        '''判断棋子x, y 有没有气'''
+        """判断棋子x, y 有没有气"""
         around = self.aroundPieces(x, y)
         for x, y in around:            
             if not self.board[x][y]:
@@ -110,7 +111,7 @@ class Board():
 
         
     def checkBlock(self, block):
-        '''检查一块有没有气'''
+        """检查一块有没有气"""
         for x, y in block:           
             if self.hasQi(x, y):
                 return True
@@ -118,14 +119,14 @@ class Board():
     
     
     def checkBlocks(self, color):
-        '''检查黑或白块有没有气'''
+        """检查黑或白块有没有气"""
         for block in (block for block in self.blocks if block.color == color):
             if not self.checkBlock(block):
                 block.isLive = False
                 
     
     def removeDeathBlocks(self):
-        '''移除没气的块'''
+        """移除没气的块"""
         for i in range(len(self.blocks)):
             if not self.blocks[i].isLive:
                 for x, y in self.blocks[i]:                    
@@ -137,7 +138,7 @@ class Board():
         
             
     def addIntoBlock(self, x, y, color):
-        '''棋子加入块'''
+        """棋子加入块"""
         sameColor = self.sameColorPieces(x, y, color)
         if len(sameColor) == 0:
             self.blocks.append(Block([(x, y)], color))

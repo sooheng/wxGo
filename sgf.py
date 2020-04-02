@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import re, os, shutil
 
 
@@ -12,7 +14,7 @@ pattern_players = re.compile(r'P[BW]\[.+?\]')
 
 
 def write(mode):
-    '''导出sgf文件'''
+    """导出sgf文件"""
     if mode.nodes:
         sgf_strs = map(sql2sgf, mode.nodes)
         with open(mode.title + '.sgf', 'w') as fp:
@@ -45,7 +47,7 @@ def sgf2sql(sgf_str):
 
 
 def read(name, mode):
-    '''按文件导入棋谱'''
+    """按文件导入棋谱"""
     if name.endswith('.sgf') or name.endswith('.SGF'):
         with open(name) as fp:
             qipu = fp.read()
@@ -61,7 +63,7 @@ def read(name, mode):
 
 
 def readdir(dirname, mode):
-    '''按目录导入棋谱'''
+    """按目录导入棋谱"""
     processed_dirname = "已导入的棋谱"
     if not os.path.exists(processed_dirname):
         os.mkdir(processed_dirname)
