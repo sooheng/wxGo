@@ -1,8 +1,14 @@
+.idea/
+.vscode/
 __pycache__/
+build/
+dist/
 垃圾箱/
 棋谱/
 已导入的棋谱/
+*.bak
 *.db
-*.jpg
-*.png
+*.pyc
 *.sgf
+*.sublime-project
+*.sublime-workspace
