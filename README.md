@@ -1,5 +1,4 @@
 # wxGo
-围棋打谱软件
 
 GUI: wxPyth
 
